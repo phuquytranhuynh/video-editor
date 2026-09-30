@@ -298,7 +298,8 @@
       h('div', { class: 'eff-sec' }, 'Caption / Keyword nổi bật'),
       h('label', { class: 'eff-note chk-row' }, h('input', { type: 'checkbox', class: 'chk', checked: S.autoSfx, onchange: (e) => (S.autoSfx = e.target.checked) }), ' Tự chèn SFX đúng lúc caption xuất hiện'),
       h('div', { class: 'btn-row' },
-        h('button', { class: 'btn primary', onclick: () => VE.showCaptionImport() }, 'Nhập phụ đề hàng loạt…')),
+        h('button', { class: 'btn primary', onclick: () => VE.showSttDialog() }, 'Phụ đề tự động từ giọng nói…'),
+        h('button', { class: 'btn', onclick: () => VE.showCaptionImport() }, 'Nhập phụ đề hàng loạt…')),
       h('div', { class: 'eff-note' }, 'Bấm "+" để thêm tại playhead, "Áp" để đổi kiểu cho caption đang chọn. Gõ *từ khoá* (đặt giữa 2 dấu sao) để tô khung highlight.'));
     VE.CAPTION_PRESETS.forEach((pr) => {
       const t = pr.text;
@@ -322,6 +323,7 @@
       h('div', { class: 'eff-note' }, 'Quy trình gợi ý: ① cắt khoảng lặng → ② jump-cut zoom → ③ thêm caption + SFX → ④ thêm nhạc nền rồi bật ducking. Chọn clip trên timeline trước khi dùng.'),
       card('✂ Tự cắt khoảng lặng', 'Dò đoạn im lặng giữa các câu nói từ waveform, xem trước vùng bị cắt, rồi xoá và dồn clip lại. Có tuỳ chọn zoom xen kẽ ngay sau khi cắt.', 'Cắt khoảng lặng…', () => VE.showSilenceDialog()),
       card('🔍 Jump-cut zoom', 'Phóng to xen kẽ giữa các đoạn (thường ↔ zoom vào khuôn mặt) để video có nhịp như CapCut. Có thể tự chia clip dài thành các đoạn ngắn, ưu tiên cắt ở chỗ ngắt nghỉ.', 'Áp zoom xen kẽ…', () => VE.showJumpZoomDialog()),
+      card('💬 Phụ đề tự động từ giọng nói', 'Nhận dạng lời nói bằng Whisper chạy ngay trên máy (không upload), tự tạo caption đúng thời điểm nói, cho bạn xem lại và sửa trước khi đưa lên timeline. Hỗ trợ tiếng Việt và nhiều ngôn ngữ khác.', 'Tạo phụ đề tự động…', () => VE.showSttDialog()),
       card('🎚 Hạ nhạc nền khi có lời nói', 'Nhạc nền tự nhỏ lại khi track lời thoại có tiếng và to lên khi im lặng. Chọn clip nhạc rồi bật; đường vàng trên clip nhạc thể hiện mức âm lượng thực tế.', 'Bật ducking…', () => VE.showDuckDialog()));
   }
 

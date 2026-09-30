@@ -7,7 +7,7 @@ Phần mềm dựng video chạy **hoàn toàn trên máy của bạn** (không 
 ## Chạy phần mềm
 
 ```bash
-npm install      # tải Electron (chỉ lần đầu)
+npm install      # tải Electron + đóng gói bộ nhận dạng giọng nói (chỉ lần đầu)
 npm start        # mở phần mềm
 ```
 
@@ -52,6 +52,18 @@ npm start        # mở phần mềm
 | **Jump-cut zoom** | Chọn các clip video → *Áp zoom xen kẽ…*: đoạn lẻ giữ nguyên khung, đoạn chẵn zoom vào khuôn mặt (2 hoặc 3 mức, nhảy tức thì hoặc punch mượt, chỉnh hướng zoom lên mặt). Có thể tự chia clip dài thành các đoạn 3–5 giây, ưu tiên cắt ở chỗ ngắt nghỉ. Có thể chạy luôn sau bước cắt lặng bằng một ô tick |
 | **Hạ nhạc nền khi có lời (ducking)** | Chọn clip nhạc → *Bật ducking…*: chọn track lời thoại, mức hạ (dB), độ nhạy, thời gian hạ/to lại. Nhạc tự nhỏ lại khi có tiếng nói và to lên khi im, cả lúc xem trước lẫn khi xuất. Đường vàng trên clip nhạc thể hiện âm lượng thực tế; chỉnh tiếp ở Properties → Hạ nhạc khi có lời |
 
+### Phụ đề tự động từ giọng nói (chỉ có trong bản desktop)
+
+Chọn clip video/audio có lời nói → tab **Tự động** (hoặc tab Caption, menu Clip → Tự động) → **Phụ đề tự động…**
+
+1. Chọn ngôn ngữ (có Tiếng Việt, English, 中文, 日本語, 한국어…), model (Tiny / Base / **Small khuyên dùng cho tiếng Việt**), kiểu caption, số từ tối đa mỗi dòng.
+2. Phần mềm nhận dạng bằng **Whisper chạy ngay trên máy** (WebAssembly, không upload audio). Audio được chia theo từng cụm câu nói (dựa vào khoảng lặng thật) rồi nhận dạng riêng từng cụm, nên mốc thời gian caption bám đúng lúc bắt đầu nói.
+3. Xem lại và **sửa chữ** trong danh sách (có thể xoá dòng, gõ `*từ khoá*` để tô highlight, xuất `.srt`), rồi bấm *Tạo caption trên timeline* (có thể kèm SFX).
+
+Model được tải **một lần** từ Hugging Face (cần internet) rồi lưu lại, những lần sau chạy hoàn toàn offline. Muốn dùng offline hoàn toàn từ đầu: bấm *Mở thư mục model* và chép model vào đó theo cấu trúc `Xenova/whisper-small/{config.json, tokenizer.json, tokenizer_config.json, preprocessor_config.json, generation_config.json, onnx/encoder_model_quantized.onnx, onnx/decoder_model_merged_quantized.onnx}` (lấy từ repo `Xenova/whisper-small` trên Hugging Face). Có thể đổi thư mục bằng biến môi trường `VE_MODELS_DIR`.
+
+Lưu ý: file audio rất dài (vài giờ) có thể tốn nhiều bộ nhớ, nên chia thành các clip ngắn hơn; model Small cần ~1–3 lần thời lượng audio để xử lý (tuỳ CPU).
+
 Phím tắt: menu **Trợ giúp → Phím tắt**.
 
 ## Lưu ý kỹ thuật
@@ -65,8 +77,8 @@ Phím tắt: menu **Trợ giúp → Phím tắt**.
 ## Cấu trúc
 
 ```
-index.html  main.js  preload.js  package.json
+index.html  main.js  preload.js  package.json  scripts/build-stt.mjs  stubs/
 css/style.css
-js/util.js icons.js store.js media.js anim.js sfx.js auto.js player.js timeline.js monitor.js
+js/util.js icons.js store.js media.js anim.js sfx.js auto.js stt-align.js stt.js stt-worker.src.mjs player.js timeline.js monitor.js
    panels.js inspector.js dialogs.js exporter.js persist.js app.js
 ```

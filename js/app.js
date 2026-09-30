@@ -45,6 +45,7 @@
         { label: 'Tự cắt khoảng lặng…', action: () => VE.showSilenceDialog() },
         { label: 'Jump-cut zoom…', action: () => VE.showJumpZoomDialog() },
         { label: 'Hạ nhạc nền khi có lời (Ducking)…', action: () => VE.showDuckDialog() },
+        { label: 'Phụ đề tự động từ giọng nói…', action: () => VE.showSttDialog() },
       ]],
       ['Sequence', () => [
         { label: 'Thiết lập Sequence…', action: () => VE.showSequenceDialog(false) },

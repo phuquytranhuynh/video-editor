@@ -1,0 +1,1 @@
+{ "name": "onnxruntime-node", "version": "0.0.0-stub", "description": "Stub: không cần bản native vì nhận dạng giọng nói chạy bằng onnxruntime-web (WebAssembly)", "main": "index.js" }

@@ -728,6 +728,7 @@
           { label: 'Tự cắt khoảng lặng…', action: () => VE.showSilenceDialog() },
           { label: 'Jump-cut zoom…', action: () => VE.showJumpZoomDialog() },
           { label: 'Hạ nhạc nền khi có lời (Ducking)…', action: () => VE.showDuckDialog() },
+          { label: 'Phụ đề tự động từ giọng nói…', action: () => VE.showSttDialog() },
         ] },
         { sep: true },
         c.link ? { label: 'Tách audio khỏi video (Unlink)', action: () => VE.unlink() } : { label: 'Liên kết clip đã chọn (Link)', disabled: S.sel.size < 2, action: () => VE.linkSelected() },
