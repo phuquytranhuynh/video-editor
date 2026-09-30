@@ -148,6 +148,9 @@
       h('div', { class: 'kindtag k-' + prim.kind }, sel.length > 1 ? sel.length + ' clip đã chọn' : ({ video: 'Video', audio: 'Audio', image: 'Ảnh', text: 'Text', shape: 'Shape' })[prim.kind]),
       nameIn));
 
+    if (pv && pv.kind === 'text') buildText(pv);
+    if (pv && pv.kind === 'shape') buildShape(pv);
+
     body.append(sec('Thời gian',
       num({ label: 'Bắt đầu (s)', get: (c) => c.start, set: (c, v) => { c.start = v; VE.overwriteRange(c.trackId, c.start, c.start + c.dur, [c.id]); }, min: 0, step: 0.04, dec: 2, group: gall, struct: true }),
       num({ label: 'Thời lượng (s)', get: (c) => c.dur, set: (c, v) => setDuration(c, v), min: 0.04, step: 0.04, dec: 2, group: () => [prim], struct: true }),
@@ -180,6 +183,9 @@
         h('div', { class: 'hint' }, '0 giây = zoom trải đều toàn bộ clip'),
         num({ label: 'Tâm zoom X', get: (c) => c.zoom.fx, set: (c, v) => (c.zoom.fx = v), min: -50, max: 50, step: 1, slider: true, group: gv, key: 'zfx' }),
         num({ label: 'Tâm zoom Y', get: (c) => c.zoom.fy, set: (c, v) => (c.zoom.fy = v), min: -50, max: 50, step: 1, slider: true, group: gv, key: 'zfy' })));
+      body.append(animSection(vis, pv));
+      if (vis.some((c) => c.kind === 'video' || c.kind === 'image')) body.append(cardSection(vis));
+      body.append(sfxSection(pv, 'Sound effect đi kèm clip này'));
     }
 
     if (aud.length) {
@@ -198,8 +204,6 @@
       if (items.length || v.link) body.append(sec('Audio của video', h('div', { class: 'hint' }, partner ? 'Audio đang liên kết với video: di chuyển/cắt cùng nhau.' : 'Audio đã tách khỏi video.'), btnRow(...items)));
     }
 
-    if (pv && pv.kind === 'text') buildText(pv);
-    if (pv && pv.kind === 'shape') buildShape(pv);
   }
 
   function setDuration(c, d) {
@@ -231,6 +235,69 @@
       h('div', { class: 'rc' },
         mini('◧ Trái', al('x', -1)), mini('⬌ Giữa', al('x', 0)), mini('Phải ◨', al('x', 1)),
         mini('⬒ Trên', al('y', -1)), mini('⬍ Giữa', al('y', 0)), mini('Dưới ⬓', al('y', 1))));
+  }
+
+  const ensure = (c) => { if (!c.anim) c.anim = { in: { type: 'none', dur: 0.4 }, out: { type: 'none', dur: 0.3 }, loop: { type: 'none', amt: 1 } }; return c.anim; };
+
+  // ---- animation xuất hiện / biến mất / lặp
+  function animSection(vis, pv) {
+    const gv = () => vis;
+    const isText = pv.kind === 'text';
+    const inOpts = VE.ANIM_IN.filter(([id]) => isText || !['typewriter', 'letterWave', 'letterPop', 'wordPop'].includes(id));
+    const loopOpts = VE.ANIM_LOOP.filter(([id]) => isText || !['wave', 'echo'].includes(id));
+    return sec('Hiệu ứng xuất hiện (Animation)',
+      select({ label: 'Xuất hiện', options: inOpts, get: (c) => ensure(c).in.type, set: (c, v) => (ensure(c).in.type = v), group: gv }),
+      num({ label: 'Thời gian (s)', get: (c) => ensure(c).in.dur, set: (c, v) => (ensure(c).in.dur = v), min: 0.05, max: 5, step: 0.05, dec: 2, slider: true, group: gv, key: 'ain' }),
+      select({ label: 'Biến mất', options: VE.ANIM_OUT, get: (c) => ensure(c).out.type, set: (c, v) => (ensure(c).out.type = v), group: gv }),
+      num({ label: 'Thời gian (s)', get: (c) => ensure(c).out.dur, set: (c, v) => (ensure(c).out.dur = v), min: 0.05, max: 5, step: 0.05, dec: 2, slider: true, group: gv, key: 'aout' }),
+      select({ label: 'Hiệu ứng lặp', options: loopOpts, get: (c) => ensure(c).loop.type, set: (c, v) => (ensure(c).loop.type = v), group: gv }),
+      num({ label: 'Cường độ lặp', get: (c) => ensure(c).loop.amt, set: (c, v) => (ensure(c).loop.amt = v), min: 0, max: 3, step: 0.1, dec: 1, slider: true, group: gv, key: 'aamt' }),
+      btnRow(mini('▶ Xem thử', () => { VE.seek(pv.start); VE.play(); }, 'Phát từ đầu clip')));
+  }
+
+  // ---- thẻ b-roll (khung viền, nền blur)
+  function cardSection(vis) {
+    const gv = () => vis.filter((c) => c.kind === 'video' || c.kind === 'image');
+    const cd = (c) => c.card || VE.defaultCard();
+    const setCard = (c, key, v) => { if (!c.card) c.card = VE.defaultCard(); c.card[key] = v; };
+    return sec('Thẻ / khung (B-roll card)',
+      toggle({ label: 'Bật khung thẻ', get: (c) => !!c.card, set: (c, v) => (c.card = v ? VE.defaultCard() : null), group: gv }),
+      color({ label: 'Màu viền', get: (c) => cd(c).border, set: (c, v) => setCard(c, 'border', v), group: gv }),
+      num({ label: 'Độ dày viền', get: (c) => cd(c).bw, set: (c, v) => setCard(c, 'bw', v), min: 0, max: 40, step: 1, slider: true, group: gv, key: 'cbw' }),
+      num({ label: 'Bo góc', get: (c) => cd(c).radius, set: (c, v) => setCard(c, 'radius', v), min: 0, max: 200, step: 1, slider: true, group: gv, key: 'crad' }),
+      toggle({ label: 'Đổ bóng', get: (c) => cd(c).shadow, set: (c, v) => setCard(c, 'shadow', v), group: gv }),
+      num({ label: 'Làm mờ cảnh nền (%)', get: (c) => cd(c).blurBg, set: (c, v) => setCard(c, 'blurBg', v), min: 0, max: 100, step: 5, slider: true, group: gv, key: 'cblur' }),
+      btnRow(mini('Áp kiểu B-roll', () => VE.applyBrollCard(), 'Thu nhỏ vào khung, viền cam bo góc, nền blur, hiệu ứng pop')),
+      h('div', { class: 'hint' }, 'Đặt clip b-roll ở track phía trên cảnh chính: cảnh chính phía dưới sẽ được làm mờ làm nền.'));
+  }
+
+  // ---- SFX bám theo clip (caption / transition / hình ảnh)
+  function sfxSection(target, title) {
+    const sel = h('select', { class: 'sel wide' }, h('option', { value: '' }, '— Không có SFX —'),
+      ...VE.SFX.map((sf) => h('option', { value: sf.id }, sf.name)));
+    const curId = () => { const f = VE.sfxOf(target); const m = f && VE.getMedia(f.mediaId); return m && m.sfx ? m.sfx : ''; };
+    sel.addEventListener('change', async () => {
+      if (!sel.value) { VE.removeSfx(target); return; }
+      const f = VE.sfxOf(target);
+      await VE.attachSfx(target, sel.value, { offset: f ? undefined : undefined, vol: f ? f.volume : 100 });
+    });
+    const offIn = h('input', { type: 'number', class: 'num', step: 0.05 });
+    const volIn = h('input', { type: 'number', class: 'num', step: 5, min: 0, max: 400 });
+    offIn.addEventListener('input', () => { const f = VE.sfxOf(target); if (f && !isNaN(parseFloat(offIn.value))) { VE.history.record('sfxoff'); f.follow.offset = parseFloat(offIn.value); VE.syncFollowers(); VE.emit('change'); } });
+    volIn.addEventListener('input', () => { const f = VE.sfxOf(target); if (f && !isNaN(parseFloat(volIn.value))) { VE.history.record('sfxvol'); f.volume = parseFloat(volIn.value); VE.emit('change'); } });
+    [offIn, volIn].forEach((i) => i.addEventListener('keydown', (e) => e.stopPropagation()));
+    binds.push(() => {
+      const f = VE.sfxOf(target);
+      sel.value = curId();
+      if (document.activeElement !== offIn) offIn.value = f ? f.follow.offset.toFixed(2) : '';
+      if (document.activeElement !== volIn) volIn.value = f ? f.volume : '';
+    });
+    return sec(title,
+      rowEl('SFX', sel),
+      rowEl('Lệch thời gian (s)', offIn, h('span', { class: 'unit' }, 'âm = sớm hơn')),
+      rowEl('Âm lượng (%)', volIn),
+      btnRow(mini('▶ Nghe thử', () => { const id = curId() || sel.value; if (id) VE.previewSfx(id); }), mini('Xoá SFX', () => VE.removeSfx(target))),
+      h('div', { class: 'hint' }, 'SFX luôn đi theo vị trí bắt đầu của clip này (kéo clip thì SFX đi cùng).'));
   }
 
   // ---- text
@@ -279,19 +346,40 @@
       } catch (e) { VE.toast('Bạn chưa cấp quyền đọc font'); }
     };
 
+    const presetSel = h('select', { class: 'sel wide' }, h('option', { value: '' }, '— Đổi kiểu caption —'), ...VE.CAPTION_PRESETS.map((p) => h('option', { value: p.id }, p.name)));
+    presetSel.addEventListener('change', () => { const pr = VE.CAPTION_PRESETS.find((x) => x.id === presetSel.value); presetSel.value = ''; if (pr) VE.applyCaptionPreset(pr, G.vis.filter((c) => c.kind === 'text')); });
+    const hlBtn = mini('✱ Tô highlight phần đang chọn', () => {
+      let a = ta.selectionStart, b = ta.selectionEnd;
+      const v = ta.value;
+      if (a === b) { while (a > 0 && !/\s/.test(v[a - 1])) a--; while (b < v.length && !/\s/.test(v[b])) b++; }
+      if (a === b) return VE.toast('Bôi đen từ khoá trong ô văn bản trước');
+      ta.value = v.slice(0, a) + '*' + v.slice(a, b) + '*' + v.slice(b);
+      ta.dispatchEvent(new Event('input'));
+    }, 'Đặt dấu * quanh từ khoá để tô khung nổi bật');
     body.append(sec('Văn bản (Text)',
+      rowEl('Kiểu', presetSel),
       ta,
+      btnRow(hlBtn),
       rowEl('Font', fontSel),
       btnRow(mini('Nạp font từ file…', () => fontFile.click()), mini('Font hệ thống', sysFonts), fontFile),
       num({ label: 'Cỡ chữ', get: (c) => c.text.size, set: (c, v) => (c.text.size = v), min: 4, max: 800, step: 1, slider: true, sMax: 300, group: g, key: 'fsize' }),
       select({ label: 'Độ đậm', options: [['300', 'Mảnh'], ['400', 'Thường'], ['500', 'Vừa'], ['600', 'Bán đậm'], ['700', 'Đậm'], ['800', 'Rất đậm'], ['900', 'Đen']], get: (c) => String(c.text.weight), set: (c, v) => (c.text.weight = parseInt(v, 10)), group: g }),
       toggle({ label: 'In nghiêng', get: (c) => c.text.italic, set: (c, v) => (c.text.italic = v), group: g }),
+      toggle({ label: 'VIẾT HOA', get: (c) => !!c.text.upper, set: (c, v) => (c.text.upper = v), group: g }),
       select({ label: 'Căn lề', options: [['left', 'Trái'], ['center', 'Giữa'], ['right', 'Phải']], get: (c) => c.text.align, set: (c, v) => (c.text.align = v), group: g }),
       color({ label: 'Màu chữ', get: (c) => c.text.color, set: (c, v) => (c.text.color = v), group: g }),
       num({ label: 'Giãn dòng', get: (c) => c.text.lineH, set: (c, v) => (c.text.lineH = v), min: 0.6, max: 3, step: 0.05, dec: 2, group: g }),
       num({ label: 'Giãn chữ', get: (c) => c.text.letterSp, set: (c, v) => (c.text.letterSp = v), min: -20, max: 100, step: 1, group: g }),
       num({ label: 'Rộng tối đa (px)', get: (c) => c.text.wrapW, set: (c, v) => (c.text.wrapW = v), min: 0, max: 8000, step: 10, group: g, key: 'wrap' }),
       h('div', { class: 'hint' }, '0 = không tự xuống dòng')));
+    body.append(sec('Highlight từ khoá (*từ*)',
+      color({ label: 'Màu khung', get: (c) => c.text.hlBg || '#f59e0b', set: (c, v) => (c.text.hlBg = v), group: g }),
+      color({ label: 'Màu chữ highlight', get: (c) => c.text.hlColor || '#ffffff', set: (c, v) => (c.text.hlColor = v), group: g }),
+      num({ label: 'Độ mờ khung (%)', get: (c) => (c.text.hlOpacity == null ? 100 : c.text.hlOpacity), set: (c, v) => (c.text.hlOpacity = v), min: 0, max: 100, step: 1, slider: true, group: g }),
+      num({ label: 'Đệm khung (px)', get: (c) => c.text.hlPad == null ? 10 : c.text.hlPad, set: (c, v) => (c.text.hlPad = v), min: 0, max: 100, step: 1, group: g }),
+      num({ label: 'Bo góc khung (px)', get: (c) => c.text.hlRadius == null ? 10 : c.text.hlRadius, set: (c, v) => (c.text.hlRadius = v), min: 0, max: 100, step: 1, group: g }),
+      toggle({ label: 'Khung quét vào', get: (c) => c.text.hlAnim !== false, set: (c, v) => (c.text.hlAnim = v), group: g }),
+      h('div', { class: 'hint' }, 'Ví dụ: "MỖI VIDEO *3-4 TIẾNG*" → phần giữa 2 dấu * được tô khung.')));
     body.append(sec('Nền chữ (Background)',
       color({ label: 'Màu nền', get: (c) => c.text.bg, set: (c, v) => { c.text.bg = v; if (!c.text.bgOpacity) c.text.bgOpacity = 100; }, group: g }),
       num({ label: 'Độ mờ nền (%)', get: (c) => c.text.bgOpacity, set: (c, v) => (c.text.bgOpacity = v), min: 0, max: 100, step: 1, slider: true, group: g }),
@@ -331,6 +419,7 @@
       num({ label: 'Thời lượng (s)', get: (c) => c.transIn.dur, set: (c, v) => VE.setTransition(c, c.transIn.type, v), min: 0.1, max: 10, step: 0.1, dec: 2, slider: true, group: g, struct: true, key: 'tdur' }),
       h('div', { class: 'hint' }, 'Transition đặt tại điểm cắt: một nửa thời lượng nằm trước điểm cắt, một nửa nằm sau. Nếu clip không còn phần dư (handle), khung hình đầu/cuối sẽ được giữ tĩnh.'),
       btnRow(mini('Xoá transition', () => { VE.history.record(); VE.setTransition(b, null); VE.clearSelection(); VE.emit('change'); }))));
+    body.append(sfxSection(b, 'Sound effect tại điểm chuyển cảnh'));
   }
 
   // ---- sequence (không chọn gì)

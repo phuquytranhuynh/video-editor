@@ -31,7 +31,7 @@
       const meta = S.media.map((m) => ({ id: m.id, name: m.name, kind: m.kind }));
       for (const m of S.media) {
         if (savedMedia.has(m.id)) continue;
-        await tx(db, 'media', 'readwrite', (st) => st.put({ id: m.id, name: m.name, kind: m.kind, type: m.file.type, blob: m.file, hasAudio: m.hasAudio, markIn: m.markIn, markOut: m.markOut }));
+        await tx(db, 'media', 'readwrite', (st) => st.put({ id: m.id, name: m.name, kind: m.kind, type: m.file.type, blob: m.file, hasAudio: m.hasAudio, markIn: m.markIn, markOut: m.markOut, sfx: m.sfx || null }));
         savedMedia.add(m.id);
       }
       const keep = new Set(Array.from(S.mediaStore.values()).filter((m) => !m.removed || S.clips.some((c) => c.mediaId === m.id)).map((m) => m.id));
@@ -71,7 +71,7 @@
   // ---- lưu / mở file dự án (chỉ chứa timeline; media tham chiếu theo tên file)
   VE.saveProjectFile = function () {
     const o = VE.serialize();
-    o.mediaMeta = S.media.map((m) => ({ id: m.id, name: m.name, kind: m.kind }));
+    o.mediaMeta = S.media.map((m) => ({ id: m.id, name: m.name, kind: m.kind, sfx: m.sfx || null }));
     VE.download(new Blob([JSON.stringify(o, null, 1)], { type: 'application/json' }), S.settings.name + '.vedit.json');
     VE.toast('Đã lưu file dự án (không chứa file media – khi mở lại cần nhập lại đúng media)');
   };
@@ -81,7 +81,11 @@
       if (!o.settings || !o.clips) throw new Error('Không phải file dự án');
       // ánh xạ media theo tên
       const map = new Map();
-      (o.mediaMeta || []).forEach((mm) => { const m = S.media.find((x) => x.name === mm.name); if (m) map.set(mm.id, m.id); });
+      for (const mm of o.mediaMeta || []) {
+        if (mm.sfx) { const sm = await VE.sfxMedia(mm.sfx); map.set(mm.id, sm.id); continue; }
+        const m = S.media.find((x) => x.name === mm.name);
+        if (m) map.set(mm.id, m.id);
+      }
       let missing = 0;
       o.clips.forEach((c) => { if (c.mediaId) { if (map.has(c.mediaId)) c.mediaId = map.get(c.mediaId); else if (!VE.getMedia(c.mediaId)) missing++; } });
       if (missing) {

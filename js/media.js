@@ -152,7 +152,7 @@
       id: rec.id, name: rec.name, kind: rec.kind, file, url,
       duration: meta.duration, width: meta.width, height: meta.height,
       hasAudio: rec.hasAudio, peaks: null, thumb: rec.kind === 'image' ? url : null, thumbs: [], img: meta.img || null,
-      size: file.size, markIn: rec.markIn, markOut: rec.markOut,
+      size: file.size, markIn: rec.markIn, markOut: rec.markOut, sfx: rec.sfx || null,
     };
     S.mediaStore.set(m.id, m);
     S.media.push(m);

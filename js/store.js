@@ -21,6 +21,8 @@
     clipboard: null,
     activePanel: 'timeline',
     fxDur: 1, // thời lượng transition mặc định
+    autoSfx: true, // tự chèn SFX khi tạo caption
+    autoTransSfx: true, // tự chèn SFX khi thêm transition
   });
 
   // ------------------------------------------------------------------ presets
@@ -150,6 +152,8 @@
       x: 0, y: 0, scale: 100, rot: 0, opacity: 100, fit: null,
       zoom: { type: 'none', amount: 20, dur: 0, ease: 'smooth', fx: 0, fy: 0, at: 'start' },
       volume: 100, muted: false,
+      anim: { in: { type: 'none', dur: 0.4 }, out: { type: 'none', dur: 0.3 }, loop: { type: 'none', amt: 1 } },
+      card: null, follow: null,
     };
     return Object.assign(base, props);
   };
@@ -161,6 +165,7 @@
     bg: '#000000', bgOpacity: 0, bgPad: 16, bgRadius: 12,
     stroke: '#000000', strokeW: 0,
     shadow: false, shadowColor: '#000000', shadowBlur: 8,
+    upper: false, hlColor: '#ffffff', hlBg: '#f59e0b', hlPad: 10, hlRadius: 10, hlOpacity: 100, hlAnim: true,
   }, over || {});
   VE.defaultShape = (type, over) => Object.assign({
     type: type || 'rect', w: 400, h: 240, fill: '#3b82f6', fillOpacity: 100, stroke: '#ffffff', strokeW: 0, radius: 24,
@@ -216,7 +221,7 @@
         c2.start = e;
         c2.in = c.in + (e - cs) * c.speed;
         c2.dur = ce - e;
-        c2.link = null; c2.transIn = null; c2.fadeIn = 0;
+        c2.link = null; c2.transIn = null; c2.fadeIn = 0; c2.follow = null;
         c.dur = s - cs;
         c.fadeOut = 0;
         S.clips.push(c2);
@@ -258,6 +263,7 @@
     c2.dur = c.start + c.dur - t;
     c2.transIn = null;
     c2.fadeIn = 0;
+    c2.follow = null;
     c.dur = t - c.start;
     c.fadeOut = 0;
     if (c.link && !keepLinks) {
@@ -292,7 +298,8 @@
     if (!list.length) return;
     VE.history.record();
     const removed = list.map((c) => ({ trackId: c.trackId, s: c.start, e: c.start + c.dur, id: c.id }));
-    S.clips = S.clips.filter((c) => !list.includes(c));
+    const gone = new Set(list.map((c) => c.id));
+    S.clips = S.clips.filter((c) => !gone.has(c.id) && !(c.follow && gone.has(c.follow.id) && !ripple));
     if (ripple) {
       const byTrack = {};
       removed.forEach((r) => (byTrack[r.trackId] = byTrack[r.trackId] || []).push(r));
@@ -310,6 +317,7 @@
   };
 
   VE.cleanTransitions = function () {
+    if (VE.syncFollowers) VE.syncFollowers();
     VE.tracksOf('video').concat(VE.tracksOf('audio')).forEach((tr) => {
       const cs = VE.clipsOnTrack(tr.id);
       cs.forEach((c, i) => { if (c.transIn && !adj(cs[i - 1], c)) c.transIn = null; });
@@ -521,17 +529,39 @@
 
   // ------------------------------------------------------------------ fx application (transition / zoom / fade)
   VE.TRANSITIONS = [
-    { id: 'dissolve', name: 'Cross Dissolve (mờ chuyển)' },
-    { id: 'dipBlack', name: 'Dip to Black (qua màu đen)' },
-    { id: 'dipWhite', name: 'Dip to White (qua màu trắng)' },
-    { id: 'wipeRight', name: 'Wipe → (quét sang phải)' },
-    { id: 'wipeLeft', name: 'Wipe ← (quét sang trái)' },
-    { id: 'wipeDown', name: 'Wipe ↓ (quét xuống)' },
-    { id: 'wipeUp', name: 'Wipe ↑ (quét lên)' },
-    { id: 'slideLeft', name: 'Slide ← (trượt vào từ phải)' },
-    { id: 'slideRight', name: 'Slide → (trượt vào từ trái)' },
-    { id: 'pushLeft', name: 'Push ← (đẩy sang trái)' },
-    { id: 'pushRight', name: 'Push → (đẩy sang phải)' },
+    { id: 'dissolve', name: 'Cross Dissolve (mờ chuyển)', cat: 'Cơ bản' },
+    { id: 'dipBlack', name: 'Dip to Black (qua màu đen)', cat: 'Cơ bản' },
+    { id: 'dipWhite', name: 'Dip to White (qua màu trắng)', cat: 'Cơ bản' },
+    { id: 'flash', name: 'Flash (loé sáng trắng)', cat: 'Cơ bản' },
+    { id: 'slideLeft', name: 'Slide ← (trượt vào từ phải)', cat: 'Trượt & đẩy' },
+    { id: 'slideRight', name: 'Slide → (trượt vào từ trái)', cat: 'Trượt & đẩy' },
+    { id: 'slideUp', name: 'Slide ↑ (trượt vào từ dưới)', cat: 'Trượt & đẩy' },
+    { id: 'slideDown', name: 'Slide ↓ (trượt vào từ trên)', cat: 'Trượt & đẩy' },
+    { id: 'pushLeft', name: 'Push ← (đẩy sang trái)', cat: 'Trượt & đẩy' },
+    { id: 'pushRight', name: 'Push → (đẩy sang phải)', cat: 'Trượt & đẩy' },
+    { id: 'pushUp', name: 'Push ↑ (đẩy lên)', cat: 'Trượt & đẩy' },
+    { id: 'pushDown', name: 'Push ↓ (đẩy xuống)', cat: 'Trượt & đẩy' },
+    { id: 'whipLeft', name: 'Whip Pan ← (vụt mờ sang trái)', cat: 'Trượt & đẩy' },
+    { id: 'whipRight', name: 'Whip Pan → (vụt mờ sang phải)', cat: 'Trượt & đẩy' },
+    { id: 'wipeRight', name: 'Wipe → (quét sang phải)', cat: 'Quét & hình khối' },
+    { id: 'wipeLeft', name: 'Wipe ← (quét sang trái)', cat: 'Quét & hình khối' },
+    { id: 'wipeDown', name: 'Wipe ↓ (quét xuống)', cat: 'Quét & hình khối' },
+    { id: 'wipeUp', name: 'Wipe ↑ (quét lên)', cat: 'Quét & hình khối' },
+    { id: 'wipeDiag', name: 'Wipe chéo', cat: 'Quét & hình khối' },
+    { id: 'irisOpen', name: 'Iris – mở tròn từ tâm', cat: 'Quét & hình khối' },
+    { id: 'clock', name: 'Clock Wipe (quét kim đồng hồ)', cat: 'Quét & hình khối' },
+    { id: 'blindsV', name: 'Blinds dọc (rèm đứng)', cat: 'Quét & hình khối' },
+    { id: 'blindsH', name: 'Blinds ngang (rèm ngang)', cat: 'Quét & hình khối' },
+    { id: 'splitH', name: 'Mở cửa ngang (từ giữa ra)', cat: 'Quét & hình khối' },
+    { id: 'splitV', name: 'Mở cửa dọc (từ giữa ra)', cat: 'Quét & hình khối' },
+    { id: 'zoomIn', name: 'Zoom In (phóng vào)', cat: 'Zoom & xoay' },
+    { id: 'zoomOut', name: 'Zoom Out (thu ra)', cat: 'Zoom & xoay' },
+    { id: 'spin', name: 'Spin (xoay)', cat: 'Zoom & xoay' },
+    { id: 'flipH', name: 'Flip (lật thẻ)', cat: 'Zoom & xoay' },
+    { id: 'blur', name: 'Blur Dissolve (nhoè chuyển)', cat: 'Zoom & xoay' },
+    { id: 'glitch', name: 'Glitch (giật nhiễu)', cat: 'Hiệu ứng' },
+    { id: 'pixelate', name: 'Pixelate (vỡ hạt)', cat: 'Hiệu ứng' },
+    { id: 'shake', name: 'Shake (rung)', cat: 'Hiệu ứng' },
   ];
   VE.transitionName = (id) => (VE.TRANSITIONS.find((t) => t.id === id) || {}).name || id;
 
@@ -544,7 +574,14 @@
       if (type == null) x.transIn = null;
       else x.transIn = { type, dur: dur != null ? dur : x.transIn ? x.transIn.dur : S.fxDur };
     };
+    const prevType = b.transIn ? b.transIn.type : null;
     apply(b);
+    if (type == null) {
+      const f = VE.sfxOf && VE.sfxOf(b);
+      if (f) S.clips = S.clips.filter((c) => c !== f);
+    } else if (type !== prevType && S.autoTransSfx && VE.TRANSITION_SFX && VE.TRANSITION_SFX[type]) {
+      VE.attachSfx(b, VE.TRANSITION_SFX[type], { noRecord: true });
+    }
     if (S.linked) {
       VE.linkedOf(b).forEach((l) => {
         const lc = VE.clipsOnTrack(l.trackId);

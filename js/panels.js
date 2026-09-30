@@ -94,10 +94,11 @@
   function render() {
     if (!listEl) return;
     listEl.textContent = '';
-    const items = S.media.filter((m) => !filter || m.name.toLowerCase().includes(filter));
-    countEl.textContent = S.media.length + ' mục';
+    const visible = S.media.filter((m) => !m.sfx);
+    const items = visible.filter((m) => !filter || m.name.toLowerCase().includes(filter));
+    countEl.textContent = visible.length + ' mục';
     listEl.className = 'proj-list ' + viewMode;
-    if (!S.media.length) {
+    if (!visible.length) {
       listEl.append(h('div', { class: 'empty' }, h('div', { html: VE.icon('import', 34) }), h('p', {}, 'Kéo thả file video / audio / ảnh vào đây'), h('button', { class: 'btn', onclick: () => VE.pickFiles() }, 'Nhập media…')));
       return;
     }
@@ -203,13 +204,15 @@
   VE.initEffects = function (panel) {
     const tabs = h('div', { class: 'tabs' });
     const body = h('div', { class: 'eff-body' });
-    const tabDefs = [['fx', 'Hiệu ứng'], ['gfx', 'Text & Shape']];
+    const tabDefs = [['fx', 'Hiệu ứng'], ['cap', 'Caption'], ['sfx', 'SFX'], ['gfx', 'Text & Shape']];
+    const FN = { fx: fxTab, cap: captionTab, sfx: sfxTab, gfx: gfxTab };
     let cur = 'fx';
     const draw = () => {
       VE.$$('button', tabs).forEach((b) => b.classList.toggle('on', b.dataset.t === cur));
       body.textContent = '';
-      (cur === 'fx' ? fxTab : gfxTab)(body);
+      FN[cur](body);
     };
+    VE.showEffectsTab = (id) => { cur = id; draw(); };
     tabDefs.forEach(([id, l]) => tabs.append(h('button', { class: 'tab', dataset: { t: id }, onclick: () => { cur = id; draw(); } }, l)));
     panel.append(h('div', { class: 'ptitle' }, tabs), body);
     panel.addEventListener('mousedown', () => (S.activePanel = 'effects'));
@@ -253,9 +256,14 @@
 
   function fxTab(body) {
     const durIn = h('input', { type: 'number', min: 0.1, max: 10, step: 0.1, value: S.fxDur, class: 'num sm', onchange: (e) => (S.fxDur = Math.max(0.1, parseFloat(e.target.value) || 1)) });
-    body.append(h('div', { class: 'eff-sec' }, 'Video Transitions – chuyển cảnh giữa 2 clip liền kề'),
+    body.append(h('div', { class: 'eff-sec' }, 'Video Transitions – ' + VE.TRANSITIONS.length + ' kiểu chuyển cảnh giữa 2 clip liền kề'),
       h('div', { class: 'eff-note' }, 'Thời lượng mặc định (giây): ', durIn));
-    VE.TRANSITIONS.forEach((t) => body.append(fxItem(t.name, { type: 'fx', fx: 'transition', id: t.id }, () => applyTransitionClick(t.id), 'fx-trans')));
+    body.append(h('label', { class: 'eff-note chk-row' }, h('input', { type: 'checkbox', class: 'chk', checked: S.autoTransSfx, onchange: (e) => (S.autoTransSfx = e.target.checked) }), ' Tự chèn SFX (whoosh, glitch…) tại điểm chuyển cảnh'));
+    let lastCat = null;
+    VE.TRANSITIONS.forEach((t) => {
+      if (t.cat !== lastCat) { lastCat = t.cat; body.append(h('div', { class: 'eff-sub' }, t.cat)); }
+      body.append(fxItem(t.name, { type: 'fx', fx: 'transition', id: t.id }, () => applyTransitionClick(t.id), 'fx-trans'));
+    });
     body.append(h('div', { class: 'eff-sec' }, 'Zoom nhanh (mượt, ease in-out)'));
     ZOOMS.forEach((z) => body.append(fxItem(z.name, Object.assign({ type: 'fx', fx: 'zoom' }, z), () => {
       const list = VE.selected().filter(VE.isVisual);
@@ -283,6 +291,51 @@
       if (d.which === 'out' || d.which === 'both') VE.setFade(c, 'fadeOut', Math.min(d.dur, c.dur / 2));
     }
   };
+
+  // ---- tab Caption: preset caption kiểu CapCut ----
+  function captionTab(body) {
+    body.append(
+      h('div', { class: 'eff-sec' }, 'Caption / Keyword nổi bật'),
+      h('label', { class: 'eff-note chk-row' }, h('input', { type: 'checkbox', class: 'chk', checked: S.autoSfx, onchange: (e) => (S.autoSfx = e.target.checked) }), ' Tự chèn SFX đúng lúc caption xuất hiện'),
+      h('div', { class: 'btn-row' },
+        h('button', { class: 'btn primary', onclick: () => VE.showCaptionImport() }, 'Nhập phụ đề hàng loạt…')),
+      h('div', { class: 'eff-note' }, 'Bấm "+" để thêm tại playhead, "Áp" để đổi kiểu cho caption đang chọn. Gõ *từ khoá* (đặt giữa 2 dấu sao) để tô khung highlight.'));
+    VE.CAPTION_PRESETS.forEach((pr) => {
+      const t = pr.text;
+      const prev = h('span', { class: 'tprev', style: {
+        color: t.color, fontFamily: t.font || 'Arial', fontWeight: t.weight, fontStyle: t.italic ? 'italic' : 'normal', background: t.bgOpacity ? t.bg : 'transparent',
+        borderRadius: t.bgOpacity ? '10px' : '0', WebkitTextStroke: t.strokeW ? '1px ' + t.stroke : '0', textShadow: t.shadow ? '0 0 6px ' + t.shadowColor : 'none', padding: t.bgOpacity ? '0 6px' : '0',
+      } }, 'Aa');
+      const sfxDef = pr.sfx && VE.sfxDef(pr.sfx);
+      body.append(h('div', { class: 'fxitem cap' }, prev, h('span', { class: 'grow' }, pr.name, sfxDef ? h('em', { class: 'tag' }, '♪ ' + sfxDef.name.split(' ')[0]) : null),
+        h('button', { class: 'btn mini', title: 'Thêm caption mới tại playhead', onclick: () => VE.addCaption(pr) }, '+'),
+        h('button', { class: 'btn mini', title: 'Áp kiểu này cho caption đang chọn', onclick: () => VE.applyCaptionPreset(pr) }, 'Áp')));
+    });
+  }
+
+  // ---- tab SFX ----
+  function sfxTab(body) {
+    body.append(
+      h('div', { class: 'eff-sec' }, 'Sound effect (tự tạo, không bản quyền)'),
+      h('div', { class: 'eff-note' }, '▶ nghe thử · "+" thêm tại playhead · hoặc kéo thả xuống timeline. Muốn SFX đi theo caption/transition: chọn clip rồi mở mục "Sound effect" ở bảng Properties.'));
+    let last = null;
+    VE.SFX.forEach((sf) => {
+      if (sf.cat !== last) { last = sf.cat; body.append(h('div', { class: 'eff-sub' }, sf.cat)); }
+      const it = h('div', { class: 'fxitem sfx', draggable: true, title: 'Kéo vào track audio của timeline' },
+        h('button', { class: 'btn mini play', title: 'Nghe thử', onclick: (e) => { e.stopPropagation(); VE.previewSfx(sf.id); } }, '▶'),
+        h('span', { class: 'grow' }, sf.name), h('em', { class: 'tag' }, sf.dur.toFixed(1) + 's'),
+        h('button', { class: 'btn mini', title: 'Thêm tại playhead (chọn track audio trống)', onclick: async (e) => {
+          e.stopPropagation();
+          const m = await VE.sfxMedia(sf.id);
+          const tr = VE.freeAudioTrack(S.playhead, m.duration);
+          const created = VE.placeMedia(m.id, { start: Math.max(0, S.playhead - sf.lead), aTrack: tr.id });
+          if (created.length) VE.select(created.map((c) => c.id));
+        } }, '+'));
+      it.addEventListener('dragstart', (e) => { VE.drag = { type: 'sfx', id: sf.id }; e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', sf.id); });
+      it.addEventListener('dragend', () => (VE.drag = null));
+      body.append(it);
+    });
+  }
 
   function gfxTab(body) {
     body.append(h('div', { class: 'eff-sec' }, 'Text'),

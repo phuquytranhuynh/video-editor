@@ -32,6 +32,18 @@ npm start        # mở phần mềm
 | Text & Shape | Text & Shape panel hoặc công cụ T / R. Chỉnh font (kể cả nạp font từ file), màu chữ, nền, viền, bóng; shape: chữ nhật, bo góc, elip, tam giác, sao, đường thẳng, mũi tên (màu nền, màu viền/line) |
 | Zoom in/out nhanh, mượt | Effects → Zoom nhanh (ease in-out), hoặc Properties → Zoom nhanh (mức %, vị trí đầu/cuối clip, thời gian, tâm zoom) |
 
+### Tính năng kiểu CapCut (Effects panel → tab Caption / SFX / Hiệu ứng)
+
+| Tính năng | Cách dùng |
+|---|---|
+| **Caption / keyword nổi bật** | Tab **Caption**: 9 kiểu có sẵn (phụ đề cam, keyword trắng pop, keyword + khung highlight cam, hộp trắng bo tròn, chữ nảy từng ký tự, lặp hình toả ra, gõ chữ, đập xuống vàng Impact, neon). Bấm **+** để thêm tại playhead, **Áp** để đổi kiểu caption đang chọn |
+| Highlight từ khoá | Gõ `*từ khoá*` (giữa 2 dấu sao) → tô khung màu quét vào, chỉnh màu/bo góc ở Properties. Nút "✱ Tô highlight phần đang chọn" |
+| Animation cho mọi clip hình/chữ | Properties → *Hiệu ứng xuất hiện*: 13 kiểu vào (fade, pop, slam, zoom, trượt, xoay, blur, rơi nảy, glitch) + 4 kiểu riêng cho chữ (gõ chữ, từng ký tự nảy/bật, từng từ bật), 10 kiểu ra, 8 kiểu lặp (pulse, lơ lửng, rung, lắc, nhấp nháy, sóng chữ, echo) |
+| Nhập caption hàng loạt | *Nhập phụ đề hàng loạt…*: dán từng dòng hoặc file `.srt`, chọn kiểu, tự chia thời lượng |
+| **Sound effect đúng lúc keyword** | 17 SFX tự tổng hợp (pop, ting, ding, whoosh, swoosh, whip, impact, glitch, gõ phím…, không bản quyền). Bật *Tự chèn SFX* ở tab Caption: mỗi caption tạo ra sẽ có clip SFX trên track audio, căn để "đỉnh" âm thanh trùng lúc chữ xuất hiện. SFX **đi theo** caption khi kéo/di chuyển; đổi SFX, độ lệch, âm lượng ở Properties → *Sound effect*. Tab **SFX**: nghe thử, thêm tại playhead hoặc kéo thả |
+| **33 chuyển cảnh** | Tab Hiệu ứng, chia nhóm: cơ bản (dissolve, dip, flash), trượt & đẩy (slide/push 4 hướng, whip pan mờ), quét & hình khối (wipe, chéo, iris, clock, blinds, mở cửa), zoom & xoay (zoom in/out, spin, flip, blur), hiệu ứng (glitch, pixelate, shake). Tự chèn SFX tại điểm chuyển cảnh (tắt được) |
+| B-roll dạng thẻ | Clip video/ảnh ở track trên: Properties → *Thẻ / khung* (viền màu, bo góc, đổ bóng, làm mờ cảnh nền phía dưới) hoặc nút "Áp kiểu B-roll" |
+
 Phím tắt: menu **Trợ giúp → Phím tắt**.
 
 ## Lưu ý kỹ thuật
@@ -47,6 +59,6 @@ Phím tắt: menu **Trợ giúp → Phím tắt**.
 ```
 index.html  main.js  preload.js  package.json
 css/style.css
-js/util.js icons.js store.js media.js player.js timeline.js monitor.js
+js/util.js icons.js store.js media.js anim.js sfx.js player.js timeline.js monitor.js
    panels.js inspector.js dialogs.js exporter.js persist.js app.js
 ```

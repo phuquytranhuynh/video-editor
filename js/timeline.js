@@ -225,7 +225,8 @@
   function buildClip(c) {
     const L = layout[c.trackId];
     const tr = VE.track(c.trackId);
-    const el = h('div', { class: 'clip k-' + c.kind + (tr.locked ? ' locked' : '') });
+    const mm = c.mediaId ? VE.getMedia(c.mediaId) : null;
+    const el = h('div', { class: 'clip k-' + c.kind + (tr.locked ? ' locked' : '') + (mm && mm.sfx ? ' is-sfx' : '') });
     el.dataset.id = c.id;
     const cv = h('canvas', { class: 'cv' });
     const fin = h('div', { class: 'fade fin' });
@@ -549,6 +550,8 @@
   // ---- move
   function startMove(c, e) {
     const moving = VE.selected().filter((x) => !VE.track(x.trackId).locked);
+    // SFX bám theo caption/transition di chuyển cùng clip gốc
+    VE.selected().forEach((c0) => S.clips.forEach((f) => { if (f.follow && f.follow.id === c0.id && !moving.includes(f) && !VE.track(f.trackId).locked) moving.push(f); }));
     if (!moving.length) return;
     const ids = new Set(moving.map((x) => x.id));
     const st = drag = {
@@ -755,8 +758,8 @@
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
     clearGhost();
-    if (d.type === 'media') {
-      const m = VE.getMedia(d.id);
+    if (d.type === 'media' || d.type === 'sfx') {
+      const m = d.type === 'sfx' ? { kind: 'audio', duration: VE.sfxDef(d.id).dur, markIn: 0, markOut: null } : VE.getMedia(d.id);
       if (!m) return;
       let t = evTime(e);
       const dur = m.kind === 'image' ? S.settings.stillDur : (m.markOut != null ? m.markOut : m.duration) - (m.markIn || 0);
@@ -783,6 +786,19 @@
     e.preventDefault();
     const insert = e.ctrlKey || e.metaKey;
     clearGhost();
+    if (d.type === 'sfx') {
+      const def = VE.sfxDef(d.id);
+      let t = evTime(e);
+      if (S.snap) { const sn = snapDelta([t, t + def.dur], snapPoints(new Set()), 9); if (sn) t += sn.d; else t = q(t); } else t = q(t);
+      const tr0 = trackAtY(evY(e));
+      const aTrack = tr0 && tr0.type === 'audio' ? tr0.id : null;
+      VE.sfxMedia(d.id).then((m) => {
+        const created = VE.placeMedia(m.id, { start: Math.max(0, t), aTrack: aTrack || VE.freeAudioTrack(t, m.duration).id });
+        if (created.length) VE.select(created.map((c) => c.id));
+      });
+      VE.drag = null;
+      return;
+    }
     if (d.type === 'media') {
       const m = VE.getMedia(d.id);
       if (!m) return;

@@ -89,6 +89,39 @@
       h('p', { class: 'hint' }, 'Xử lý bằng Chromium (Canvas / WebAudio / MediaRecorder). Video được ghép và mã hoá theo thời gian thực khi xuất.')), buttons: [{ label: 'Đóng', primary: true }] });
   };
 
+  // Nhập nhiều caption một lần: mỗi dòng một caption hoặc file SRT
+  VE.showCaptionImport = function () {
+    const ta = h('textarea', { class: 'big', placeholder: 'Mỗi dòng là một caption. Dùng *từ khoá* để tô highlight.\nHoặc dán nội dung file .srt (có mốc thời gian).' });
+    const fileIn = h('input', { type: 'file', accept: '.srt,.txt', hidden: true });
+    fileIn.onchange = async () => { const f = fileIn.files[0]; if (f) ta.value = await f.text(); };
+    const pre = h('select', { class: 'sel wide' }, ...VE.CAPTION_PRESETS.map((p) => h('option', { value: p.id }, p.name)));
+    const start = h('input', { type: 'number', class: 'num', step: 0.1, min: 0, value: S.playhead.toFixed(2) });
+    const dur = h('input', { type: 'number', class: 'num', step: 0.1, min: 0.3, value: 2.5 });
+    const gap = h('input', { type: 'number', class: 'num', step: 0.1, min: 0, value: 0 });
+    const sfx = h('input', { type: 'checkbox', class: 'chk', checked: S.autoSfx });
+    const body = h('div', { class: 'form' },
+      ta,
+      h('div', { class: 'btn-row' }, h('button', { class: 'btn mini', onclick: () => fileIn.click() }, 'Mở file .srt / .txt…'), fileIn),
+      VE.fieldRow('Kiểu caption', pre),
+      VE.fieldRow('Bắt đầu tại (giây)', start),
+      VE.fieldRow('Thời lượng mỗi dòng (s)', dur),
+      VE.fieldRow('Khoảng nghỉ giữa các dòng (s)', gap),
+      VE.fieldRow('Chèn SFX cho mỗi caption', sfx),
+      h('div', { class: 'hint' }, 'Nếu dán SRT, thời gian lấy theo file SRT (cộng thêm "Bắt đầu tại"); thời lượng mỗi dòng và khoảng nghỉ chỉ dùng cho chế độ mỗi dòng một caption.'));
+    VE.modal({
+      title: 'Nhập phụ đề hàng loạt', body, width: 560,
+      buttons: [
+        { label: 'Huỷ' },
+        { label: 'Tạo caption', primary: true, action: () => {
+          const preset = VE.CAPTION_PRESETS.find((p) => p.id === pre.value);
+          const items = VE.parseCaptionText(ta.value, parseFloat(start.value) || 0, parseFloat(dur.value) || 2.5, parseFloat(gap.value) || 0);
+          if (!items.length) { VE.toast('Chưa có nội dung caption'); return false; }
+          VE.addCaptions(items, preset, { sfx: sfx.checked }).then((m) => VE.toast('Đã tạo ' + m.length + ' caption'));
+        } },
+      ],
+    });
+  };
+
   // Hộp thoại khởi động
   VE.showStartup = function (hasRecent, onRestore) {
     const body = h('div', { class: 'startup' },
