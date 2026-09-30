@@ -30,7 +30,10 @@
   // ---- event bus ----
   const handlers = {};
   VE.on = (e, f) => ((handlers[e] = handlers[e] || []).push(f), f);
-  VE.emit = (e, ...a) => (handlers[e] || []).slice().forEach((f) => {
+  VE.ver = 0;
+  const VER_EVENTS = new Set(['change', 'props', 'media', 'thumbs', 'settings']);
+  VE.emit = (e, ...a) => { if (VER_EVENTS.has(e)) VE.ver++; return emitRaw(e, ...a); };
+  const emitRaw = (e, ...a) => (handlers[e] || []).slice().forEach((f) => {
     try { f(...a); } catch (err) { console.error('[' + e + ']', err); }
   });
 

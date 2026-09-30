@@ -319,9 +319,18 @@
         const hh = Math.max(1, Math.min(amp, mx * vol * amp * 1.05));
         ctx.fillRect(x, mid - hh, 1, hh * 2);
       }
-    } else if (c.kind === 'audio') {
+    } else if (c.kind === 'audio' && !(m && m.peaks)) {
       ctx.strokeStyle = 'rgba(255,255,255,.25)';
       ctx.beginPath(); ctx.moveTo(0, hgt / 2 + 6); ctx.lineTo(w, hgt / 2 + 6); ctx.stroke();
+    }
+    if (c.kind === 'audio' && c.duck && c.duck.on && VE.duckFactor) {
+      // đường cong âm lượng sau ducking: cao = giữ nguyên, thấp = đã hạ
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 1.5; ctx.beginPath();
+      for (let x = 0; x <= w; x += 2) {
+        const t = c.start + (x / w) * c.dur, y = 15 + (hgt - 22) * (1 - VE.duckFactor(c, t));
+        x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
     }
   }
 
@@ -714,6 +723,12 @@
         { label: 'Copy', shortcut: 'Ctrl+C', action: () => VE.copySel() },
         { label: 'Xoá', shortcut: 'Del', action: () => VE.deleteClips(Array.from(S.sel)) },
         { label: 'Xoá & dồn khoảng trống (Ripple)', shortcut: 'Shift+Del', action: () => VE.deleteClips(Array.from(S.sel), true) },
+        { sep: true },
+        (c.kind === 'video' || c.kind === 'audio') && { label: 'Tự động', sub: [
+          { label: 'Tự cắt khoảng lặng…', action: () => VE.showSilenceDialog() },
+          { label: 'Jump-cut zoom…', action: () => VE.showJumpZoomDialog() },
+          { label: 'Hạ nhạc nền khi có lời (Ducking)…', action: () => VE.showDuckDialog() },
+        ] },
         { sep: true },
         c.link ? { label: 'Tách audio khỏi video (Unlink)', action: () => VE.unlink() } : { label: 'Liên kết clip đã chọn (Link)', disabled: S.sel.size < 2, action: () => VE.linkSelected() },
         c.kind === 'video' && { label: 'Trích xuất audio (Extract Audio)', disabled: !(m && m.hasAudio), action: () => VE.extractAudio(c) },

@@ -189,6 +189,8 @@
     }
 
     if (aud.length) {
+      const music = aud.filter((c) => !(VE.getMedia(c.mediaId) || {}).sfx);
+      if (music.length) body.append(duckSection(music));
       body.append(sec('Âm thanh',
         num({ label: 'Âm lượng (%)', get: (c) => c.volume, set: (c, v) => (c.volume = v), min: 0, max: 400, step: 1, slider: true, sMax: 200, group: ga, struct: true, key: 'vol' }),
         toggle({ label: 'Tắt tiếng clip', get: (c) => c.muted, set: (c, v) => (c.muted = v), group: ga, struct: true })));
@@ -238,6 +240,20 @@
   }
 
   const ensure = (c) => { if (!c.anim) c.anim = { in: { type: 'none', dur: 0.4 }, out: { type: 'none', dur: 0.3 }, loop: { type: 'none', amt: 1 } }; return c.anim; };
+
+  // ---- ducking (hạ nhạc khi có lời nói)
+  function duckSection(clips) {
+    const g = () => clips;
+    const ensureD = (c) => { if (!c.duck) c.duck = VE.defaultDuck(c); return c.duck; };
+    return sec('Hạ nhạc khi có lời (Ducking)',
+      toggle({ label: 'Bật ducking', get: (c) => !!(c.duck && c.duck.on), set: (c, v) => { ensureD(c).on = v; }, group: g, struct: true }),
+      num({ label: 'Hạ xuống (dB)', get: (c) => (c.duck ? c.duck.amt : -16), set: (c, v) => { ensureD(c).amt = v; }, min: -40, max: -1, step: 1, slider: true, group: g, struct: true, key: 'damt' }),
+      num({ label: 'Độ nhạy (dB)', get: (c) => VE.toDb(c.duck ? c.duck.th : 0.03), set: (c, v) => { ensureD(c).th = VE.fromDb(v); }, min: -60, max: -15, step: 1, slider: true, group: g, struct: true, key: 'dth' }),
+      num({ label: 'Hạ trong (s)', get: (c) => (c.duck ? c.duck.att : 0.2), set: (c, v) => { ensureD(c).att = v; }, min: 0.02, max: 2, step: 0.05, dec: 2, group: g, struct: true, key: 'datt' }),
+      num({ label: 'To lại sau (s)', get: (c) => (c.duck ? c.duck.rel : 0.5), set: (c, v) => { ensureD(c).rel = v; }, min: 0.05, max: 3, step: 0.05, dec: 2, group: g, struct: true, key: 'drel' }),
+      btnRow(mini('Chọn track lời thoại…', () => VE.showDuckDialog()), mini('Tắt', () => VE.removeDuck(clips))),
+      h('div', { class: 'hint' }, 'Đường vàng trên clip thể hiện mức âm lượng thực tế sau khi hạ.'));
+  }
 
   // ---- animation xuất hiện / biến mất / lặp
   function animSection(vis, pv) {

@@ -41,6 +41,10 @@
         { label: 'Vừa khung (Fit)', action: () => VE.applyFit('fit') },
         { label: 'Lấp đầy khung (Fill)', action: () => VE.applyFit('fill') },
         { label: 'Kích thước gốc (100%)', action: () => VE.applyFit('orig') },
+        { sep: true },
+        { label: 'Tự cắt khoảng lặng…', action: () => VE.showSilenceDialog() },
+        { label: 'Jump-cut zoom…', action: () => VE.showJumpZoomDialog() },
+        { label: 'Hạ nhạc nền khi có lời (Ducking)…', action: () => VE.showDuckDialog() },
       ]],
       ['Sequence', () => [
         { label: 'Thiết lập Sequence…', action: () => VE.showSequenceDialog(false) },

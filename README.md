@@ -44,6 +44,14 @@ npm start        # mở phần mềm
 | **33 chuyển cảnh** | Tab Hiệu ứng, chia nhóm: cơ bản (dissolve, dip, flash), trượt & đẩy (slide/push 4 hướng, whip pan mờ), quét & hình khối (wipe, chéo, iris, clock, blinds, mở cửa), zoom & xoay (zoom in/out, spin, flip, blur), hiệu ứng (glitch, pixelate, shake). Tự chèn SFX tại điểm chuyển cảnh (tắt được) |
 | B-roll dạng thẻ | Clip video/ảnh ở track trên: Properties → *Thẻ / khung* (viền màu, bo góc, đổ bóng, làm mờ cảnh nền phía dưới) hoặc nút "Áp kiểu B-roll" |
 
+### Công cụ dựng nhanh video nói chuyện (Effects panel → tab **Tự động**, hoặc menu Clip → Tự động)
+
+| Công cụ | Cách dùng |
+|---|---|
+| **Tự cắt khoảng lặng** | Chọn clip có lời nói → *Cắt khoảng lặng…*. Phần mềm dò đoạn im lặng từ waveform, hiển thị vùng sẽ cắt (màu đỏ) và ngưỡng (vạch vàng) để bạn chỉnh: ngưỡng dB (có nút tự dò), độ dài lặng tối thiểu, đệm giữ lại mỗi đầu, cắt đầu/cuối clip. Cắt xong tự dồn clip, giữ liên kết video + audio. Mặc định chỉ cắt track của clip đang chọn; bật "MỌI track" để giữ đồng bộ caption/b-roll |
+| **Jump-cut zoom** | Chọn các clip video → *Áp zoom xen kẽ…*: đoạn lẻ giữ nguyên khung, đoạn chẵn zoom vào khuôn mặt (2 hoặc 3 mức, nhảy tức thì hoặc punch mượt, chỉnh hướng zoom lên mặt). Có thể tự chia clip dài thành các đoạn 3–5 giây, ưu tiên cắt ở chỗ ngắt nghỉ. Có thể chạy luôn sau bước cắt lặng bằng một ô tick |
+| **Hạ nhạc nền khi có lời (ducking)** | Chọn clip nhạc → *Bật ducking…*: chọn track lời thoại, mức hạ (dB), độ nhạy, thời gian hạ/to lại. Nhạc tự nhỏ lại khi có tiếng nói và to lên khi im, cả lúc xem trước lẫn khi xuất. Đường vàng trên clip nhạc thể hiện âm lượng thực tế; chỉnh tiếp ở Properties → Hạ nhạc khi có lời |
+
 Phím tắt: menu **Trợ giúp → Phím tắt**.
 
 ## Lưu ý kỹ thuật
@@ -59,6 +67,6 @@ Phím tắt: menu **Trợ giúp → Phím tắt**.
 ```
 index.html  main.js  preload.js  package.json
 css/style.css
-js/util.js icons.js store.js media.js anim.js sfx.js player.js timeline.js monitor.js
+js/util.js icons.js store.js media.js anim.js sfx.js auto.js player.js timeline.js monitor.js
    panels.js inspector.js dialogs.js exporter.js persist.js app.js
 ```

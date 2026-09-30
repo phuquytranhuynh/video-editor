@@ -204,8 +204,8 @@
   VE.initEffects = function (panel) {
     const tabs = h('div', { class: 'tabs' });
     const body = h('div', { class: 'eff-body' });
-    const tabDefs = [['fx', 'Hiệu ứng'], ['cap', 'Caption'], ['sfx', 'SFX'], ['gfx', 'Text & Shape']];
-    const FN = { fx: fxTab, cap: captionTab, sfx: sfxTab, gfx: gfxTab };
+    const tabDefs = [['fx', 'Hiệu ứng'], ['cap', 'Caption'], ['auto', 'Tự động'], ['sfx', 'SFX'], ['gfx', 'Text/Shape']];
+    const FN = { fx: fxTab, cap: captionTab, auto: autoTab, sfx: sfxTab, gfx: gfxTab };
     let cur = 'fx';
     const draw = () => {
       VE.$$('button', tabs).forEach((b) => b.classList.toggle('on', b.dataset.t === cur));
@@ -311,6 +311,18 @@
         h('button', { class: 'btn mini', title: 'Thêm caption mới tại playhead', onclick: () => VE.addCaption(pr) }, '+'),
         h('button', { class: 'btn mini', title: 'Áp kiểu này cho caption đang chọn', onclick: () => VE.applyCaptionPreset(pr) }, 'Áp')));
     });
+  }
+
+  // ---- tab Tự động: cắt khoảng lặng / jump-cut zoom / ducking ----
+  function autoTab(body) {
+    const card = (title, desc, btn, fn) => h('div', { class: 'autocard' }, h('div', { class: 'at' }, title), h('div', { class: 'ad' }, desc),
+      h('button', { class: 'btn primary', onclick: fn }, btn));
+    body.append(
+      h('div', { class: 'eff-sec' }, 'Dựng nhanh video nói chuyện (talking-head)'),
+      h('div', { class: 'eff-note' }, 'Quy trình gợi ý: ① cắt khoảng lặng → ② jump-cut zoom → ③ thêm caption + SFX → ④ thêm nhạc nền rồi bật ducking. Chọn clip trên timeline trước khi dùng.'),
+      card('✂ Tự cắt khoảng lặng', 'Dò đoạn im lặng giữa các câu nói từ waveform, xem trước vùng bị cắt, rồi xoá và dồn clip lại. Có tuỳ chọn zoom xen kẽ ngay sau khi cắt.', 'Cắt khoảng lặng…', () => VE.showSilenceDialog()),
+      card('🔍 Jump-cut zoom', 'Phóng to xen kẽ giữa các đoạn (thường ↔ zoom vào khuôn mặt) để video có nhịp như CapCut. Có thể tự chia clip dài thành các đoạn ngắn, ưu tiên cắt ở chỗ ngắt nghỉ.', 'Áp zoom xen kẽ…', () => VE.showJumpZoomDialog()),
+      card('🎚 Hạ nhạc nền khi có lời nói', 'Nhạc nền tự nhỏ lại khi track lời thoại có tiếng và to lên khi im lặng. Chọn clip nhạc rồi bật; đường vàng trên clip nhạc thể hiện mức âm lượng thực tế.', 'Bật ducking…', () => VE.showDuckDialog()));
   }
 
   // ---- tab SFX ----

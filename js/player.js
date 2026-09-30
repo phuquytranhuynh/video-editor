@@ -258,6 +258,7 @@
     if (!tr || tr.muted || c.muted) return 0;
     if (S.tracks.some((x) => x.type === 'audio' && x.solo) && !tr.solo) return 0;
     let g = c.volume / 100;
+    if (c.duck && c.duck.on && VE.duckFactor) g *= VE.duckFactor(c, t);
     const sp = effSpan(c, cs);
     const s = c.start, e = c.start + c.dur;
     if (!sp.inT && c.fadeIn > 0 && t < s + c.fadeIn) g *= clamp((t - s) / c.fadeIn, 0, 1);

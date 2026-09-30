@@ -153,7 +153,7 @@
       zoom: { type: 'none', amount: 20, dur: 0, ease: 'smooth', fx: 0, fy: 0, at: 'start' },
       volume: 100, muted: false,
       anim: { in: { type: 'none', dur: 0.4 }, out: { type: 'none', dur: 0.3 }, loop: { type: 'none', amt: 1 } },
-      card: null, follow: null,
+      card: null, follow: null, duck: null,
     };
     return Object.assign(base, props);
   };
@@ -274,6 +274,44 @@
     }
     S.clips.push(c2);
     return c2;
+  };
+
+  // Cắt tất cả clip (trên các track trackIds) tại các thời điểm times; giữ đúng cặp liên kết video/audio
+  VE.splitTimes = function (times, trackIds, record) {
+    const tr = new Set(trackIds);
+    if (record !== false) VE.history.record();
+    let n = 0;
+    times.slice().sort((a, b) => a - b).forEach((t) => {
+      linkMap.clear();
+      S.clips.slice().forEach((c) => {
+        if (tr.has(c.trackId) && !VE.track(c.trackId).locked && t > c.start + EPS && t < c.start + c.dur - EPS) { if (VE.splitRaw(c, t)) n++; }
+      });
+    });
+    linkMap.clear();
+    return n;
+  };
+
+  // Xoá các khoảng thời gian [s,e] trên các track trackIds và dồn phần phía sau lại (ripple)
+  VE.removeRanges = function (ranges, trackIds) {
+    const tr = new Set(trackIds.filter((id) => !VE.track(id).locked));
+    const rs = ranges.filter((r) => r[1] - r[0] > 1e-3).sort((a, b) => b[0] - a[0]); // từ cuối về đầu
+    if (!rs.length || !tr.size) return 0;
+    VE.history.record();
+    rs.forEach(([s, e]) => {
+      const d = e - s;
+      [e, s].forEach((t) => {
+        linkMap.clear();
+        S.clips.slice().forEach((c) => { if (tr.has(c.trackId) && t > c.start + EPS && t < c.start + c.dur - EPS) VE.splitRaw(c, t); });
+      });
+      linkMap.clear();
+      S.clips = S.clips.filter((c) => !(tr.has(c.trackId) && c.start >= s - EPS && c.start + c.dur <= e + EPS));
+      S.clips.forEach((c) => { if (tr.has(c.trackId) && c.start >= e - EPS) c.start -= d; });
+    });
+    VE.cleanTransitions();
+    cleanSel();
+    VE.emit('change');
+    VE.emit('select');
+    return rs.length;
   };
 
   // Cắt tại playhead: clip đang chọn (+ liên kết) hoặc mọi track không khoá
